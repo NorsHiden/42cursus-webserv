@@ -1,0 +1,22 @@
+-> 1st Step:
+	↨ create vector of servers.
+	↨ each vector element is a Server class.
+
+-> 2nd Step:
+	↨ create server sockets.
+	↨ create vector of clients.
+	↨ each vector element is a Client struct.
+	↨ setup multiplexing.
+
+-> 3rd Step:
+	↨ wait for request.
+	↨ parse header.
+	↨ check host header to know which server should handle request. (if no server_name has matched, choose first server).
+	↨ check content_length.
+	↨ check valid location.
+	↨ check method permission.
+	↨ check location redirection.
+	↨ check CGI.
+	↨ check upload. (if method is POST).
+	↨ send response.
+	
