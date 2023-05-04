@@ -54,7 +54,7 @@ void Server::getServer(std::ifstream& configFile)
 		else if (!line.compare(0, 13, "\terror_pages:"))
 			errorPagesComp(line, server);
 		else if (!line.compare(0, 10, "\tlocation:"))
-			locationComp(line, server);
+			locationComp(line, configFile, server);
 		else if (!line.compare("end"))
 			break ;
 	}
