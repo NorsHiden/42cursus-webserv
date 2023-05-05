@@ -9,7 +9,10 @@ class Server
 		std::vector<ServerBlock> config;
 		
 	public:
-		// Parsing
+		/* Modifiers */
+		bool empty(void) const { return (config.empty()); }
+		
+		/* ----------------PARSING---------------- */
 		int	importConfig(const std::string filename);
 		void getServer(std::ifstream& configFile);
 		void listenComp(std::string line, ServerBlock& server);
@@ -26,6 +29,10 @@ class Server
 		void uploadComp(std::string line, LocationBlock& location);
 		void redirectionComp(std::string line, LocationBlock& location);
 		friend std::ostream& operator<<(std::ostream& out, Server& server);
+		
+		/* ----------------BUILDING---------------- */
+
+
 };
 
 #endif /* __SERVER_HPP__ */

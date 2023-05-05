@@ -11,6 +11,8 @@ int main(int ac, char **av)
 	try
 	{
 		server.importConfig(av[1]);
+		if (server.empty())
+			throw (std::runtime_error("no server has been found."));
 	}
 	catch (const std::exception& e)
 	{
