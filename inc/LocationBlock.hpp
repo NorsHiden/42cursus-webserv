@@ -12,6 +12,7 @@ struct LocationBlock
 	bool autoindex;
 	std::string upload; // PATH
 	std::pair<std::string, short> redirection; // [ URI, STATUS_CODE ]
+	LocationBlock(): autoindex(false) {}
 };
 
 #endif /* __LOCATIONBLOCK_HPP__ */

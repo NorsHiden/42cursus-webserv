@@ -98,10 +98,8 @@ void Server::allowedMethodsComp(std::string line, LocationBlock& location)
 	if (emptyLine(value))
 		throw (std::runtime_error("allowed_methods has no value."));
 	std::vector<std::string> methods = split(value, ' ');
-	std::cout << methods.size() << std::endl;
 	for (size_t i = 0; i < methods.size(); i++)
 	{
-		std::cout << methods[i] << std::endl;
 		if (methods[i] != "GET" && methods[i] != "POST" && methods[i] != "DELETE")
 			throw (std::runtime_error("invalid allowed_methods value."));
 		location.allowed_methods.insert(methods[i]);
@@ -164,7 +162,7 @@ void Server::uploadComp(std::string line, LocationBlock& location)
 
 void Server::redirectionComp(std::string line, LocationBlock& location)
 {
-	std::string value = line.substr(10, line.size() - 10);
+	std::string value = line.substr(9, line.size() - 9);
 	if (emptyLine(value))
 		throw (std::runtime_error("return has no value."));
 	std::vector<std::string> redir = split(value, ' ');
@@ -233,14 +231,14 @@ void Server::getServer(std::ifstream& configFile)
 			errorPagesComp(line, server);
 		else if (!line.compare(0, 10, "\tlocation:"))
 			locationComp(line, configFile, server);
-		else if (!line.compare("end"))
+		else if (line == "end")
 		{
 			config.push_back(server);
 			break ;
 		}
 		else
 		{
-			std::cout << line << std::endl;
+			std::cout << line << line.size() << std::endl;
 			throw (std::runtime_error("invalid server directive."));
 		}
 	}
@@ -252,7 +250,7 @@ int	Server::importConfig(const std::string filename)
 
 	if (!configFile.is_open())
 	{
-		std::cerr << "Unable to read from " << filename << std::endl;
+		std::cerr << "unable to read from " << filename << std::endl;
 		return (1);
 	}
 	for (std::string line; std::getline(configFile, line);)
@@ -263,7 +261,41 @@ int	Server::importConfig(const std::string filename)
 			getServer(configFile);
 		else
 			throw (std::runtime_error("invalid directive."));
-
 	}
 	return (0);
+}
+
+std::ostream& operator<<(std::ostream& out, Server& server)
+{
+	for (size_t i = 0; i < server.config.size(); i++)
+	{
+		std::cout << "server " << i << ":" << std::endl;
+		std::cout << "\tlisten: " << server.config[i].listen.first << ":" << server.config[i].listen.second << std::endl;
+		std::cout << "\terror_pages:" << std::endl;
+		for (std::map<short, std::string>::iterator it = server.config[i].error_pages.begin(); it != server.config[i].error_pages.end(); it++)
+			std::cout << "\t\t" << it->first << ":" << it->second << std::endl;
+		std::cout << "\tclient_max_body_size: " << server.config[i].client_max_body_size << std::endl;
+		std::cout << "\tserver_names: ";
+		for (size_t j = 0; j < server.config[i].server_names.size(); j++)
+			std::cout << server.config[i].server_names[j] << " ";
+		std::cout << std::endl;
+		for (std::map<std::string, LocationBlock>::iterator it = server.config[i].locations.begin(); it != server.config[i].locations.end(); it++)
+		{
+			std::cout << "\tlocation: " << it->first << std::endl;
+			std::cout << "\t\troot: " << it->second.root << std::endl;
+			std::cout << "\t\tupload: " << it->second.upload << std::endl;
+			std::cout << "\t\tallowed_methods: ";
+			for (std::set<std::string>::iterator ite = it->second.allowed_methods.begin(); ite != it->second.allowed_methods.end(); ite++)
+				std::cout << *ite << " ";
+			std::cout << std::endl;
+			std::cout << "\t\tautoindex: " << it->second.autoindex << std::endl;
+			std::cout << "\t\tcgi: " << it->second.cgi.first << ' ' << it->second.cgi.second << std::endl;
+			std::cout << "\t\tredirection: " << it->second.redirection.first << ' ' << it->second.redirection.second << std::endl;
+			std::cout << "\t\tindex: ";
+			for (std::vector<std::string>::iterator ite = it->second.index.begin(); ite != it->second.index.end(); ite++)
+				std::cout << *ite << " ";
+			std::cout << std::endl;
+		}
+	}
+	return (out);
 }

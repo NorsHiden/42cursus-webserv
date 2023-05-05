@@ -25,7 +25,7 @@ class Server
 		void autoIndexComp(std::string line, LocationBlock& location);
 		void uploadComp(std::string line, LocationBlock& location);
 		void redirectionComp(std::string line, LocationBlock& location);
-
+		friend std::ostream& operator<<(std::ostream& out, Server& server);
 };
 
 #endif /* __SERVER_HPP__ */

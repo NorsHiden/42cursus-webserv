@@ -1,4 +1,4 @@
-CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -I ./inc/
+CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -I ./inc/ #-fsanitize=address -g
 SRCS = srcs/main.cpp srcs/tools.cpp srcs/configParse.cpp
 
 NAME = webserv

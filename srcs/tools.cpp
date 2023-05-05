@@ -10,27 +10,6 @@ bool emptyLine(const std::string& line)
 	return (true);
 }
 
-// std::vector<std::string> split(const std::string& str, char delim)
-// {
-//     std::vector<std::string> tokens;
-//     std::stringstream ss(str);
-//     std::string token;
-
-//     // check if the delimiter is present in the input string
-//     if (str.find(delim) == std::string::npos) {
-//         tokens.push_back(str);
-//         return tokens;
-//     }
-
-//     while (std::getline(ss, token, delim)) {
-//         if (!emptyLine(token))
-//             tokens.push_back(token);
-//     }
-//     for (size_t i = 0; i < tokens.size(); i++)
-//         std::cout << tokens[i] << "->" << tokens[i].size() << std::endl;
-//     return tokens;
-// }
-
 std::vector<std::string> split(const std::string& str, char delim)
 {
     std::vector<std::string> tokens;
@@ -42,9 +21,6 @@ std::vector<std::string> split(const std::string& str, char delim)
     }
     if (!emptyLine(str.substr(start)))
         tokens.push_back(str.substr(start));
-    
-    for (size_t i = 0; i < tokens.size(); i++)
-        std::cout << tokens[i] << "->" << tokens[i].size() << std::endl;
     return tokens;
 }
 
