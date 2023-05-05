@@ -1,5 +1,4 @@
 CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -I ./inc/
-
 SRCS = srcs/main.cpp srcs/tools.cpp srcs/configParse.cpp
 
 NAME = webserv

@@ -6,7 +6,7 @@
 struct LocationBlock
 {
 	std::string root;
-	std::vector<std::string> allowed_methods; // [ GET, POST, DELETE ] ONLY
+	std::set<std::string> allowed_methods; // [ GET, POST, DELETE ] ONLY
 	std::vector<std::string> index;
 	std::pair<std::string, std::string> cgi; // [ PATH, EXTENSION ]
 	bool autoindex;
