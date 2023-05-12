@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>File Upload</title>
+</head>
+<body>
+	<h1>Upload a File</h1>
+	<form>
+		<input type="file" id="fileUpload" name="fileUpload">
+		<br><br>
+		<button type="submit" onclick="uploadFile()">Upload</button>
+	</form>
+	<p id="status"></p>
+
+	<script>
+		function uploadFile() {
+			const fileInput = document.getElementById('fileUpload');
+			const file = fileInput.files[0];
+			const xhr = new XMLHttpRequest();
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState === 4 && xhr.status === 200) {
+					document.getElementById('status').innerHTML = 'File uploaded successfully!';
+				}
+			};
+			xhr.open('POST', '/upload', true);
+			xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+			xhr.send(file);
+		}
+	</script>
+</body>
+</html>

@@ -13,11 +13,13 @@ int main(int ac, char **av)
 		server.importConfig(av[1]);
 		if (server.empty())
 			throw (std::runtime_error("no server has been found."));
+		server.buildServers();
+		server.launchServers();
+		std::cout << server;
 	}
 	catch (const std::exception& e)
 	{
 		std::cerr << e.what() << std::endl;
 	}
-	std::cout << server;
 	return (0);
 }

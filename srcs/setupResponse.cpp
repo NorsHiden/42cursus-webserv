@@ -1,0 +1,196 @@
+#include <webserv.hpp>
+
+int Client::setupRedirection(void)
+{
+	response.header = "HTTP/1.1 " + stringify(location.second.redirection.second) + "\r\nServer: webserv\r\n";
+	response.header += "Date: " + getCurrentTime() + "\r\n";
+	response.header += "Location: " + location.second.redirection.first + "\r\n";
+	response.header += "Content-Length: 0\r\n";
+	response.header += "Connection: keep-alive\r\n\r\n";
+	action = REDIRECTION_RESPONSE;
+	return (1);
+}
+
+int Client::setupCGI(void)
+{
+	if (access(location.second.cgi.first.c_str(), X_OK))
+		return (setupInternalServerError(server.error_pages));
+	action = CGI_RESPONSE;
+	return (1);
+}
+
+int Client::setupUpload(void)
+{
+	if (!is_directory(location.second.upload.c_str()) && access(location.second.upload.c_str(), W_OK))
+		return (setupInternalServerError(server.error_pages));
+	action = UPLOAD_RESPONSE;
+	return (1);
+}
+
+std::string Client::getDirectoryContent(const std::string& path)
+{
+	std::string content = "<html><head><title>Index of " + start_line[1] + "</title></head><body>";
+	content += "<h1>Index of " + start_line[1] + "</h1><hr><pre>";
+	DIR* dir = opendir(path.c_str());
+	if (dir)
+	{
+		struct dirent* entry;
+		std::string start = start_line[1];
+		if (start[start.size() - 1] == '/')
+			start = start.substr(0, start.size() - 1);
+		while ((entry = readdir(dir)))
+		{
+			if (std::string(entry->d_name) != ".")
+			{
+				content += std::string("<div><a style=\"display:inline-block;\" href=\"")
+						+ start + '/' + entry->d_name + "\">" + entry->d_name
+						+ "</a><p style=\"display:inline-block;\">\t\t";
+				struct stat fileStat;
+				stat((path + "/" + entry->d_name).c_str(), &fileStat);
+				content += stringify(fileStat.st_size) + "B "
+						+ std::string(ctime(&fileStat.st_ctime)) + "</p></div>";
+			}
+		}
+		closedir(dir);
+	}
+	content += "</pre><hr></body></html>";
+	return (content);
+}
+
+int Client::setupAutoIndex(std::string& path)
+{
+	response.autoindex_body = getDirectoryContent(path);
+	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
+	response.header += "Date: " + getCurrentTime() + "\r\n";
+	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(response.autoindex_body.size()) + "\r\n";
+	response.header += "Connection: keep-alive\r\n\r\n";
+	action = AUTOINDEX_RESPONSE;
+	return (1);
+}
+
+int Client::aDirectoryRequest(std::string& path, std::string& filename)
+{
+	path += '/';
+	for (size_t i = 0; i < location.second.index.size(); ++i)
+	{
+		if (!access((path + location.second.index[i]).c_str(), R_OK))
+		{
+			filename = path + location.second.index[i];
+			break ;
+		}
+	}
+	if (filename.empty())
+	{
+		if (!location.second.autoindex)
+			return (setupForbidden(server.error_pages));
+		return (setupAutoIndex(path));
+	}
+	return (0);
+}
+
+int Client::setupRegularResponse(void)
+{
+	if (!is_directory(location.second.root.c_str()) || access(location.second.root.c_str(), R_OK))
+		return (setupForbidden(server.error_pages));
+	std::string path = location.second.root + (start_line[1].substr(location.first.size() - 1, start_line[1].size() - location.first.size() + 1));
+	// std::cout << sock_fd << ": " << path << std::endl;
+	std::string filename;
+	if (is_directory(path.c_str()))
+	{
+		if (aDirectoryRequest(path, filename))
+			return (1);
+	}
+	else if (!access(path.c_str(), R_OK))
+		filename = path;
+	else
+		return (setupNotFound(server.error_pages));
+	// std::cout << "filename: " << filename << std::endl;
+	response.body_fd = open(filename.c_str(), O_RDONLY);
+	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
+	response.header += "Date: " + getCurrentTime() + "\r\n";
+	response.header += "Content-Type: " + getFileType(filename) + "\r\nContent-Length: " + stringify(getFileSize(filename)) + "\r\n";
+	response.header += "Connection: keep-alive\r\n\r\n";
+	action = REGULAR_RESPONSE;
+	return (1);
+}
+
+
+ServerBlock& Client::findHost(std::vector<ServerBlock>& config)
+{
+	if (header.find("Host") == header.end())
+		return (config[0]);
+	std::vector<std::string> hostname = split(header["Host"], ':');
+	for (size_t i = 0; i < config.size(); i++)
+	{
+		for (size_t j = 0; j < config[i].server_names.size(); j++)
+		{
+			if (hostname[0] == config[i].server_names[j])
+				return (config[i]);
+		}
+	}
+	return (config[0]);
+}
+
+int Client::setupLocation(void)
+{
+	std::map<std::string, LocationBlock> matchedLocations = server.locations;
+	std::string path;
+	std::map<std::string, LocationBlock>::iterator it = matchedLocations.begin();
+	while (it != matchedLocations.end())
+	{
+		if (start_line[1].compare(0, it->first.size(), it->first))
+			matchedLocations.erase(it++);
+		else if (path.size() < it->first.size())
+			path = (it++)->first;
+	}
+	if (path.empty())
+		return (setupNotFound(server.error_pages));
+	location = *matchedLocations.find(path);
+	return (0);
+}
+
+int Client::checkMaxBodySize(void)
+{
+	size_t content_size = 0;
+	if (start_line[0] != "POST")
+		return (0);
+	if (header.find("Content-Type") == header.end())
+		return (setupLengthRequired(server.error_pages));
+	try
+	{
+		content_size = stringToLong(header["Content-Type"]);
+		if (server.client_max_body_size < content_size)
+			return (setupRequestEntityTooLarge(server.error_pages));
+	}
+	catch (std::invalid_argument& e)
+	{
+		return (setupBadRequest(server.error_pages));
+	}
+	return (0);
+}
+
+
+int Client::setupResponse(std::vector<ServerBlock>& config)
+{
+	// error handling
+	if (start_line.size() != 3)
+		return (setupBadRequest(config[0].error_pages));
+	if (start_line[2] != "HTTP/1.1\r")
+		return (setupHTTPVersionNotSupported(config[0].error_pages));
+	server = findHost(config);
+	if (checkMaxBodySize())
+		return (1);
+	if (setupLocation())
+		return (setupNotFound(server.error_pages));
+	if (location.second.allowed_methods.find(start_line[0]) == location.second.allowed_methods.end())
+		return (setupMethodNotAllowed(server.error_pages));
+	// finding right response
+	if (!location.second.redirection.first.empty())
+		return (setupRedirection());
+	if (!location.second.cgi.first.empty())
+		return (setupCGI());
+	if (start_line[0] == "POST" && !location.second.upload.empty())
+		return (setupUpload());
+	setupRegularResponse();
+	return (0);
+}

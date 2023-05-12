@@ -12,8 +12,8 @@ void Server::importHost(std::string& host, ServerBlock& server)
 		int part = stringToLong(splitted_ip[times]);
 		if (part < 0 || part > 255)
 			throw (std::runtime_error("invalid listen value."));
-		ip_addr += part;
 		ip_addr <<= 8;
+		ip_addr += part;
 	}
 	if (server.listen.first > 0)
 			throw (std::runtime_error("duplication in listen value."));
@@ -237,22 +237,16 @@ void Server::getServer(std::ifstream& configFile)
 			break ;
 		}
 		else
-		{
-			std::cout << line << line.size() << std::endl;
 			throw (std::runtime_error("invalid server directive."));
-		}
 	}
 }
 
-int	Server::importConfig(const std::string filename)
+void Server::importConfig(const std::string& filename)
 {
 	std::ifstream configFile(filename.data());
 
 	if (!configFile.is_open())
-	{
-		std::cerr << "unable to read from " << filename << std::endl;
-		return (1);
-	}
+		throw (std::runtime_error("unable to import the configuration file."));
 	for (std::string line; std::getline(configFile, line);)
 	{
 		if (emptyLine(line))
@@ -262,7 +256,6 @@ int	Server::importConfig(const std::string filename)
 		else
 			throw (std::runtime_error("invalid directive."));
 	}
-	return (0);
 }
 
 std::ostream& operator<<(std::ostream& out, Server& server)

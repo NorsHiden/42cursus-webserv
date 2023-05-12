@@ -6,14 +6,16 @@
 class Server
 {
 	private:
-		std::vector<ServerBlock> config;
+		std::vector<ServerBlock> config; // imported from config file
+		std::vector<int> server_sockets; // server_fds
+		std::list<Client> clients;
 		
 	public:
 		/* Modifiers */
 		bool empty(void) const { return (config.empty()); }
 		
 		/* ----------------PARSING---------------- */
-		int	importConfig(const std::string filename);
+		void importConfig(const std::string& filename);
 		void getServer(std::ifstream& configFile);
 		void listenComp(std::string line, ServerBlock& server);
 		void importHost(std::string& host, ServerBlock& server);
@@ -31,6 +33,10 @@ class Server
 		friend std::ostream& operator<<(std::ostream& out, Server& server);
 		
 		/* ----------------BUILDING---------------- */
+		void	buildServers(void);
+		void	launchServers(void);
+		void	checkNewConnections(fd_set& currentfds, fd_set& readfds);
+		void	checkExistingConnections(fd_set& currentfds, fd_set& readfds, fd_set& writefds);
 
 
 };
