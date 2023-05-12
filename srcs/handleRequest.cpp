@@ -109,6 +109,3 @@ void Client::handleRequest(std::vector<ServerBlock>& config)
 	else if (action == AUTOINDEX_RESPONSE || action == REDIRECTION_RESPONSE)
 		sendAutoIndexAndRedirection();
 }
-	// std::cout << start_line[0] << " " << start_line[1] << " " << start_line[2] << std::endl;
-	// for (std::map<std::string, std::string>::iterator it = header.begin(); it != header.end(); ++it)
-	// 	std::cout << "[" << it->first << "] -> [" << it->second << "]" << std::endl;
