@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Server.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/05/13 18:44:36 by nelidris          #+#    #+#             */
+/*   Updated: 2023/05/13 18:44:36 by nelidris         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef __SERVER_HPP__
 # define __SERVER_HPP__
 
@@ -7,8 +19,8 @@ class Server
 {
 	private:
 		std::vector<ServerBlock> config; // imported from config file
-		std::vector<int> server_sockets; // server_fds
-		std::list<Client> clients;
+		std::map<short, int> server_sockets; // server_fds
+		std::map<short, std::list<Client> > clients;
 		
 	public:
 		/* Modifiers */

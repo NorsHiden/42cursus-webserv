@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Client.hpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/05/13 18:44:24 by nelidris          #+#    #+#             */
+/*   Updated: 2023/05/14 08:24:11 by nelidris         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #ifndef __CLIENT_HPP__
 # define __CLIENT_HPP__
 
@@ -23,15 +35,15 @@ struct Client
 	Client(): sock_fd(-1), action(false), header_done(false), body(NULL), body_size(0) {}
 	~Client() { if (body) delete body; }
 
-	void handleRequest(std::vector<ServerBlock>& config);
-	int setupResponse(std::vector<ServerBlock>& config);
+	void handleRequest(short port, std::vector<ServerBlock>& config);
+	int setupResponse(short port, std::vector<ServerBlock>& config);
 	
 	// parsing request
 	void readRequest(void);
 	void parseRequestHeader(void);
 	void parseHeaderLine(std::string& line);
 	// handling errors
-	ServerBlock& findHost(std::vector<ServerBlock>& config);
+	ServerBlock& findHost(short port, std::vector<ServerBlock>& config);
 	int setupLocation();
 	int	checkMaxBodySize();
 	// // error status codes

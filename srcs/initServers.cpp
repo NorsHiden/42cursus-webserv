@@ -1,42 +1,57 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   initServers.cpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
+/*   Updated: 2023/05/14 08:22:14 by nelidris         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <webserv.hpp>
 
 void	Server::checkNewConnections(fd_set& currentfds, fd_set& readfds)
 {
-	for (size_t i = 0; i < server_sockets.size(); ++i)
+	for (std::map<short, int>::iterator it = server_sockets.begin(); it != server_sockets.end(); ++it)
 	{
-		if (FD_ISSET(server_sockets[i], &readfds))
+		if (FD_ISSET(it->second, &readfds))
 		{
 			// accept new incomming connection
 			Client new_client;
-			new_client.sock_fd = accept(server_sockets[i], (sockaddr*)&new_client.addr, &new_client.addr_len);
+			new_client.sock_fd = accept(it->second, (sockaddr*)&new_client.addr, &new_client.addr_len);
 			if (new_client.sock_fd < 0)
 				throw (std::runtime_error("accept failed"));
 			// std::cout << "client: " << new_client.sock_fd << std::endl;
 			if (fcntl(new_client.sock_fd, F_SETFL, O_NONBLOCK) == -1)
 				throw (std::runtime_error("fcntl failed"));
 			FD_SET(new_client.sock_fd, &currentfds);
-			clients.push_back(new_client);
+			clients[it->first].push_back(new_client);
 		}
 	}
 }
 
 void	Server::checkExistingConnections(fd_set& currentfds, fd_set& readfds, fd_set& writefds)
 {
-	std::list<Client>::iterator client = clients.begin();
-	while (client != clients.end())
+	for (std::map<short, std::list<Client> >::iterator it = clients.begin(); it != clients.end(); ++it)
 	{
-		if (FD_ISSET(client->sock_fd, &readfds)) // ready to read
-			client->readRequest();
-		if (FD_ISSET(client->sock_fd, &writefds)) // ready to write
-			client->handleRequest(config);
-		if (client->action == REMOVE_CLIENT)
+		std::list<Client>::iterator client = it->second.begin();
+		while (client != it->second.end())
 		{
-			FD_CLR(client->sock_fd, &currentfds);
-			close(client->sock_fd);
-			clients.erase(client++);
+			if (FD_ISSET(client->sock_fd, &readfds)) // ready to read
+				client->readRequest();
+			if (FD_ISSET(client->sock_fd, &writefds)) // ready to write
+				client->handleRequest(it->first, config);
+			if (client->action == REMOVE_CLIENT)
+			{
+				FD_CLR(client->sock_fd, &currentfds);
+				close(client->sock_fd);
+				it->second.erase(client++);
+			}
+			else
+				++client;
 		}
-		else
-			++client;
 	}
 }
 
@@ -66,8 +81,11 @@ void	Server::launchServers(void)
 
 void	Server::buildServers(void)
 {
+	std::vector<short> hosted_ports;
 	for (size_t i = 0; i < config.size(); i++)
 	{
+		if (std::find(hosted_ports.begin(), hosted_ports.end(), config[i].listen.second) != hosted_ports.end())
+			continue ;
 		int sock = socket(AF_INET, SOCK_STREAM, 0); // creating a scoket
 		if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
 			throw (std::runtime_error("non-blocking failed."));
@@ -85,6 +103,8 @@ void	Server::buildServers(void)
 		 // listening for incoming connections
 		if (listen(sock, LISTEN_QUEUE) < 0) // LISTEN_QUEUE is how many connections should be in the queue before starting to reject requests
 			throw (std::runtime_error("listen failed due to permission denied."));
-		server_sockets.push_back(sock);
+		hosted_ports.push_back(config[i].listen.second);
+		std::pair<short, int> port_socket = std::make_pair(config[i].listen.second, sock);
+		server_sockets.insert(port_socket);
 	}
 }

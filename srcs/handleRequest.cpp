@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   handleRequest.cpp                                  :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
+/*   Updated: 2023/05/14 08:22:41 by nelidris         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <webserv.hpp>
 
 void	appendToBody(char **body, size_t &body_size, char *buffer, size_t buffer_size)
@@ -98,12 +110,12 @@ void Client::sendAutoIndexAndRedirection(void)
 	action = REMOVE_CLIENT;
 }
 
-void Client::handleRequest(std::vector<ServerBlock>& config)
+void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 {
 	if (action == READ_SOCKET || action == REMOVE_CLIENT)
 		return ;
 	if (action == SETUP_RESPONSE)
-		setupResponse(config);
+		setupResponse(port, config);
 	else if (action == REGULAR_RESPONSE || action == ERROR_RESPONSE)
 		sendRegularResponse();
 	else if (action == AUTOINDEX_RESPONSE || action == REDIRECTION_RESPONSE)

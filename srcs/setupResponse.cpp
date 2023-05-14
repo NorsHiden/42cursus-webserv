@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   setupResponse.cpp                                  :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
+/*   Updated: 2023/05/14 08:30:42 by nelidris         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include <webserv.hpp>
 
 int Client::setupRedirection(void)
@@ -115,19 +127,25 @@ int Client::setupRegularResponse(void)
 }
 
 
-ServerBlock& Client::findHost(std::vector<ServerBlock>& config)
+ServerBlock& Client::findHost(short port, std::vector<ServerBlock>& config)
 {
-	if (header.find("Host") == header.end())
-		return (config[0]);
-	std::vector<std::string> hostname = split(header["Host"], ':');
-	for (size_t i = 0; i < config.size(); i++)
+	ServerBlock* matchedServer = NULL;
+	for (size_t i = 0; i < config.size(); ++i)
 	{
-		for (size_t j = 0; j < config[i].server_names.size(); j++)
+		if (config[i].listen.second == port)
 		{
-			if (hostname[0] == config[i].server_names[j])
-				return (config[i]);
+			std::vector<std::string> hostname = split(header["Host"], ':');
+			for (size_t j = 0; j < config[i].server_names.size(); j++)
+			{
+				if (hostname[0] == config[i].server_names[j])
+					return (config[i]);
+			}
+			if (!matchedServer)
+				matchedServer = &config[i];
 		}
 	}
+	if (matchedServer)
+		return (*matchedServer);
 	return (config[0]);
 }
 
@@ -170,14 +188,14 @@ int Client::checkMaxBodySize(void)
 }
 
 
-int Client::setupResponse(std::vector<ServerBlock>& config)
+int Client::setupResponse(short port, std::vector<ServerBlock>& config)
 {
 	// error handling
 	if (start_line.size() != 3)
 		return (setupBadRequest(config[0].error_pages));
 	if (start_line[2] != "HTTP/1.1\r")
 		return (setupHTTPVersionNotSupported(config[0].error_pages));
-	server = findHost(config);
+	server = findHost(port, config);
 	if (checkMaxBodySize())
 		return (1);
 	if (setupLocation())
