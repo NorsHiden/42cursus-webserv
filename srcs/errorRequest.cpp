@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:32 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/13 18:43:33 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/14 15:15:10 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -25,6 +25,27 @@ int Client::setupBadRequest(std::map<short, std::string>& error_pages)
 	}
 	else
 		path = "default_pages/400.html";
+	response.body_fd = open(path.c_str(), O_RDONLY);
+	response.header += "Date: " + getCurrentTime() + "\r\n";
+	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
+	response.header += "Connection: keep-alive\r\n\r\n";
+	action = ERROR_RESPONSE;
+	return (1);
+}
+
+int Client::setupConflict(std::map<short, std::string>& error_pages)
+{
+	response.header = "HTTP/1.1 409 Conflict\r\nServer: webserv\r\n";
+	std::string path;
+	if (error_pages.find(409) != error_pages.end())
+	{
+		if (access(error_pages[409].c_str(), R_OK) == -1)
+			path = "default_pages/409.html";
+		else
+			path = error_pages[409];
+	}
+	else
+		path = "default_pages/409.html";
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";

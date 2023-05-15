@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/14 08:30:42 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/15 06:58:43 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,7 +35,16 @@ int Client::setupUpload(void)
 {
 	if (!is_directory(location.second.upload.c_str()) && access(location.second.upload.c_str(), W_OK))
 		return (setupInternalServerError(server.error_pages));
+	std::string path = location.second.upload + (start_line[1].substr(location.first.size(), start_line[1].size() - location.first.size()));
+	std::cout << "path: " << path << std::endl;
+	if (!access(path.c_str(), F_OK))
+		return (setupConflict(server.error_pages));
+	response.upload_fd = open(path.c_str(), O_WRONLY | O_CREAT, 0666);
 	action = UPLOAD_RESPONSE;
+	response.header = "HTTP/1.1 201 Created\r\nServer: webserv\r\n";
+	response.header += "Date: " + getCurrentTime() + "\r\n";
+	response.header += "Content-Length: 0\r\n";
+	response.header += "Connection: keep-alive\r\n\r\n";
 	return (1);
 }
 
@@ -104,8 +113,7 @@ int Client::setupRegularResponse(void)
 {
 	if (!is_directory(location.second.root.c_str()) || access(location.second.root.c_str(), R_OK))
 		return (setupForbidden(server.error_pages));
-	std::string path = location.second.root + (start_line[1].substr(location.first.size() - 1, start_line[1].size() - location.first.size() + 1));
-	// std::cout << sock_fd << ": " << path << std::endl;
+	std::string path = location.second.root + (start_line[1].substr(location.first.size(), start_line[1].size() - location.first.size()));
 	std::string filename;
 	if (is_directory(path.c_str()))
 	{
@@ -115,7 +123,7 @@ int Client::setupRegularResponse(void)
 	else if (!access(path.c_str(), R_OK))
 		filename = path;
 	else
-		return (setupNotFound(server.error_pages));
+		return ((setupNotFound(server.error_pages)));
 	// std::cout << "filename: " << filename << std::endl;
 	response.body_fd = open(filename.c_str(), O_RDONLY);
 	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
@@ -172,11 +180,11 @@ int Client::checkMaxBodySize(void)
 	size_t content_size = 0;
 	if (start_line[0] != "POST")
 		return (0);
-	if (header.find("Content-Type") == header.end())
+	if (header.find("Content-Length") == header.end() && header.find("Transfer-Encoding") == header.end())
 		return (setupLengthRequired(server.error_pages));
 	try
 	{
-		content_size = stringToLong(header["Content-Type"]);
+		content_size = stringToLong(header["Content-Length"]);
 		if (server.client_max_body_size < content_size)
 			return (setupRequestEntityTooLarge(server.error_pages));
 	}

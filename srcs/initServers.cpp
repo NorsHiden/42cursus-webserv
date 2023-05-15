@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/14 08:22:14 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/15 09:22:12 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,6 +65,7 @@ void	Server::launchServers(void)
 	memset(&time, 0, sizeof(time));
 	for (size_t i = 0; i < server_sockets.size(); ++i)
 		FD_SET(server_sockets[i], &currentfds);
+	FD_CLR(0, &currentfds); // remove stdin from the fd_set;
 	while (true)
 	{
 		readfds = writefds = currentfds;

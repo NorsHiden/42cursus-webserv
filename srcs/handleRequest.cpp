@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/14 08:22:41 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/15 09:26:50 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -42,6 +42,36 @@ void Client::parseHeaderLine(std::string& line)
 	header.insert(var);
 }
 
+void Client::adjustBody(void)
+{
+	// chunked body
+	for (; chunked_body.pos_body < body_size - 1; chunked_body.pos_body++)
+	{
+		if (body[chunked_body.pos_body] == '\r' && body[chunked_body.pos_body + 1] == '\n')
+		{
+			if (chunked_body.looking_for_size)
+			{
+				body[chunked_body.pos_body] = 0;
+				chunked_body.grabbed_size = strtol(body + chunked_body.start_body, NULL, 16);
+				if (chunked_body.grabbed_size == 0)
+				{
+					chunked_body.reading_done = true;
+					break ;
+				}
+				chunked_body.start_body = chunked_body.pos_body + 2;
+				chunked_body.looking_for_size = false;
+			}
+			else if (chunked_body.pos_body - chunked_body.start_body >= chunked_body.grabbed_size)
+			{
+				chunked_body.looking_for_size = true;
+				appendToBody(&chunked_body.buffer, chunked_body.size, body + chunked_body.start_body, chunked_body.grabbed_size);
+				chunked_body.start_body = chunked_body.pos_body + 2;
+				chunked_body.grabbed_size = 0;
+			}
+		}
+	}
+}
+
 void Client::parseRequestHeader(void)
 {
 	std::stringstream in(header_buffer);
@@ -51,17 +81,20 @@ void Client::parseRequestHeader(void)
 	start_line = split(line, ' ');
 	while (std::getline(in, line))
 		parseHeaderLine(line);
+	if (header.find("Transfer-Encoding") != header.end() && header["Transfer-Encoding"] == "chunked")
+		chunked_body.chunked_body = true;
 }
+
 
 void Client::readRequest(void)
 {
-	char buffer[BUFFER_DATA];
+	char buffer[BUFFER_DATA + 1];
 	memset(buffer, 0, sizeof(buffer));
 	int ret = recv(sock_fd, buffer, BUFFER_DATA, 0);
 
 	if (ret <= 0)
 	{	
-		std::cout << "connection closed || error reading from sock_fd" << std::endl;
+		std::cout << "connection closed" << std::endl;
 		action = REMOVE_CLIENT;
 		return ;
 	}	// connection closed
@@ -73,14 +106,22 @@ void Client::readRequest(void)
 		{
 			header_buffer = request_buffer.substr(0, pos + 4);
 			request_buffer.erase(0, pos + 4);
-			if (!request_buffer.empty())
-				appendToBody(&body, body_size, buffer + pos + 4, ret - pos - 4);
 			parseRequestHeader();
+			if (!request_buffer.empty())
+			{
+				appendToBody(&body, body_size, buffer + pos + 4, ret - pos - 4);
+				if (chunked_body.chunked_body && !chunked_body.reading_done)
+					adjustBody();
+			}
 			action = SETUP_RESPONSE;
 		}
 	}
 	else
+	{
 		appendToBody(&body, body_size, buffer, ret);
+		if (chunked_body.chunked_body && !chunked_body.reading_done)
+			adjustBody();
+	}
 }
 
 
@@ -110,6 +151,80 @@ void Client::sendAutoIndexAndRedirection(void)
 	action = REMOVE_CLIENT;
 }
 
+void Client::chunkedUpload(void)
+{
+	if (pos + BUFFER_DATA > server.client_max_body_size)
+	{
+		if (chunked_body.size - pos > BUFFER_DATA)
+		{
+			write(response.upload_fd, chunked_body.buffer + pos, BUFFER_DATA);
+			pos += BUFFER_DATA;
+		}
+		else
+		{
+			write(response.upload_fd, chunked_body.buffer + pos, chunked_body.size - pos);
+			pos += chunked_body.size - pos;
+		}
+	}
+	else if (chunked_body.size - pos > server.client_max_body_size)
+	{
+		write(response.upload_fd, chunked_body.buffer + pos, server.client_max_body_size - pos);
+		pos += server.client_max_body_size - pos;
+	}
+	else
+	{
+		write(response.upload_fd, chunked_body.buffer + pos, chunked_body.size - pos);
+		pos += chunked_body.size - pos;
+	}
+	if (pos == server.client_max_body_size || (chunked_body.reading_done && pos == chunked_body.size))
+	{
+		send(sock_fd, response.header.c_str(), response.header.size(), 0);
+		close(response.upload_fd);
+		action = REMOVE_CLIENT;
+	}
+}
+
+void Client::normalUpload(void)
+{
+	if (pos + BUFFER_DATA > (size_t)stringToLong(header["Content-Length"]))
+	{
+		if (body_size - pos > BUFFER_DATA)
+		{
+			write(response.upload_fd, body + pos, BUFFER_DATA);
+			pos += BUFFER_DATA;
+		}
+		else
+		{
+			write(response.upload_fd, body + pos, body_size - pos);
+			pos += body_size - pos;
+		}
+	}
+	else if (body_size - pos > (size_t)stringToLong(header["Content-Length"]))
+	{
+		write(response.upload_fd, body + pos, stringToLong(header["Content-Length"]) - pos);
+		pos += stringToLong(header["Content-Length"]) - pos;
+	}
+	else
+	{
+		write(response.upload_fd, body + pos, body_size - pos);
+		pos += body_size - pos;
+	}
+	if (pos == (size_t)stringToLong(header["Content-Length"]))
+	{
+		send(sock_fd, response.header.c_str(), response.header.size(), 0);
+		close(response.upload_fd);
+		action = REMOVE_CLIENT;
+	}
+}
+
+void Client::sendUploadResponse(void)
+{
+	if (chunked_body.chunked_body)
+		chunkedUpload();
+	else
+		normalUpload();
+}
+
 void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 {
 	if (action == READ_SOCKET || action == REMOVE_CLIENT)
@@ -120,4 +235,6 @@ void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 		sendRegularResponse();
 	else if (action == AUTOINDEX_RESPONSE || action == REDIRECTION_RESPONSE)
 		sendAutoIndexAndRedirection();
+	else if (action == UPLOAD_RESPONSE)
+		sendUploadResponse();
 }

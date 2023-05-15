@@ -44,7 +44,7 @@
 # include "Server.hpp"
 
 # define LISTEN_QUEUE 5
-# define BUFFER_DATA 1024
+# define BUFFER_DATA 10240
 
 # define READ_SOCKET 0
 # define SETUP_RESPONSE 1
