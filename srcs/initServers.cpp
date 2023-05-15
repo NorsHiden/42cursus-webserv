@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 09:22:12 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/15 09:53:56 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -88,9 +88,9 @@ void	Server::buildServers(void)
 		if (std::find(hosted_ports.begin(), hosted_ports.end(), config[i].listen.second) != hosted_ports.end())
 			continue ;
 		int sock = socket(AF_INET, SOCK_STREAM, 0); // creating a scoket
-		if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
+		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
 			throw (std::runtime_error("non-blocking failed."));
-		if (!sock)
+		if (sock < 0)
 			throw (std::runtime_error("socket failed."));
 		// setting up the server address
 		struct sockaddr_in serv_addr;
@@ -105,7 +105,7 @@ void	Server::buildServers(void)
 		if (listen(sock, LISTEN_QUEUE) < 0) // LISTEN_QUEUE is how many connections should be in the queue before starting to reject requests
 			throw (std::runtime_error("listen failed due to permission denied."));
 		hosted_ports.push_back(config[i].listen.second);
-		std::pair<short, int> port_socket = std::make_pair(config[i].listen.second, sock);
+		std::pair<short, int> port_socket(config[i].listen.second, sock);
 		server_sockets.insert(port_socket);
 	}
 }

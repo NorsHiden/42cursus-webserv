@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:14 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/13 18:44:19 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/15 10:27:31 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ std::string getFileType(std::string filename)
 		return ("text/" + extention);
 	else if (extention == "js")
 		return ("text/javascript");
-	else if (extention == "png" || extention == "jpeg")
+	else if (extention == "png" || extention == "jpeg" || extention == "jpg" || extention == "gif")
 		return ("image/" + extention);
 	else if (extention == "woff" || extention == "ttf")
 		return ("font/" + extention);

@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 09:26:50 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/15 11:22:53 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -136,10 +136,13 @@ void Client::sendRegularResponse(void)
 	{
 		char buffer[BUFFER_DATA];
 		ssize_t n = read(response.body_fd, buffer, BUFFER_DATA);
+		int i = 0;
 		if (!n)
 			action = REMOVE_CLIENT;
 		else
-			send(sock_fd, buffer, n, 0);
+			i = send(sock_fd, buffer, n, 0);
+		if (i != n)
+			std::cout << "error sending -> i: " << i << " | n: " << n << std::endl;
 	}
 }
 

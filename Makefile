@@ -1,4 +1,4 @@
-CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -I ./inc/ -fsanitize=address -g
+CPPFLAGS = -Wall -Wextra -Werror -std=c++98 -I ./inc/ #-fsanitize=address -g
 
 SRCS = srcs/main.cpp srcs/tools.cpp srcs/configParse.cpp srcs/initServers.cpp \
 		srcs/handleRequest.cpp srcs/setupResponse.cpp srcs/errorRequest.cpp
