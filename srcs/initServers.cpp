@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 09:53:56 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/16 10:13:45 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,15 +83,20 @@ void	Server::launchServers(void)
 void	Server::buildServers(void)
 {
 	std::vector<short> hosted_ports;
+	signal(SIGPIPE, SIG_IGN);
 	for (size_t i = 0; i < config.size(); i++)
 	{
 		if (std::find(hosted_ports.begin(), hosted_ports.end(), config[i].listen.second) != hosted_ports.end())
 			continue ;
 		int sock = socket(AF_INET, SOCK_STREAM, 0); // creating a scoket
-		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
-			throw (std::runtime_error("non-blocking failed."));
 		if (sock < 0)
 			throw (std::runtime_error("socket failed."));
+		int reuse = 1;
+		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) 
+			throw (std::runtime_error("setsockopt failed"));
+
+		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)
+			throw (std::runtime_error("non-blocking failed."));
 		// setting up the server address
 		struct sockaddr_in serv_addr;
 		memset(&serv_addr, 0, sizeof(serv_addr));
@@ -102,7 +107,7 @@ void	Server::buildServers(void)
 		if (bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 			throw (std::runtime_error("bind failed due to the port is already in use."));
 		 // listening for incoming connections
-		if (listen(sock, LISTEN_QUEUE) < 0) // LISTEN_QUEUE is how many connections should be in the queue before starting to reject requests
+		if (listen(sock, SOMAXCONN) < 0) // LISTEN_QUEUE is how many connections should be in the queue before starting to reject requests
 			throw (std::runtime_error("listen failed due to permission denied."));
 		hosted_ports.push_back(config[i].listen.second);
 		std::pair<short, int> port_socket(config[i].listen.second, sock);

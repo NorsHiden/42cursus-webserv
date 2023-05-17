@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:24 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 07:36:35 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/16 14:11:12 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,22 +34,22 @@ struct chucked_body
 
 struct Client
 {
-	std::map<std::string, std::string> header;
-	std::string	request_buffer;
-	std::string	header_buffer;
-	std::vector<std::string> start_line;
-	ServerBlock server;
-	std::pair<std::string, LocationBlock> location;
-	Response	response;
-	sockaddr_in	addr;
-	socklen_t	addr_len;
-	int			sock_fd;
-	int			action;
+	std::pair<std::string, LocationBlock>	location;
+	std::map<std::string, std::string>		header;
+	std::vector<std::string>				start_line;
 	chucked_body	chunked_body;
-	bool		header_done;
-	size_t		pos;
-	char		*body;
-	size_t		body_size;
+	std::string		request_buffer;
+	std::string		header_buffer;
+	ServerBlock		server;
+	sockaddr_in		addr;
+	socklen_t		addr_len;
+	Response		response;
+	int				sock_fd;
+	int				action;
+	bool			header_done;
+	size_t			pos;
+	char			*body;
+	size_t			body_size;
 
 	Client(): sock_fd(-1), action(false), header_done(false), pos(0), body(NULL), body_size(0) {}
 	~Client() { if (body) delete body; }

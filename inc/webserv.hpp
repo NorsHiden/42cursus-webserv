@@ -37,14 +37,14 @@
 # include <sstream>
 # include <algorithm>
 
+# define BUFFER_DATA 10240
+
 # include "LocationBlock.hpp"
 # include "ServerBlock.hpp"
 # include "Response.hpp"
 # include "Client.hpp"
 # include "Server.hpp"
 
-# define LISTEN_QUEUE 5
-# define BUFFER_DATA 3628
 
 # define READ_SOCKET 0
 # define SETUP_RESPONSE 1
@@ -56,15 +56,15 @@
 # define ERROR_RESPONSE 7
 # define REMOVE_CLIENT 8
 
-bool emptyLine(const std::string& line);
-std::vector<std::string> split(const std::string& str, char delim);
-long int stringToLong(const std::string& str);
-void appendToBody(char **body, size_t &body_size, char *buffer, size_t buffer_size);
-std::string removeWhiteSpace(std::string line);
-std::string getCurrentTime();
-std::string stringify(long value);
-long getFileSize(const std::string& filename);
-bool is_directory(const char* path);
-std::string getFileType(std::string filename);
+std::vector<std::string>	split(const std::string& str, char delim);
+std::string	getFileType(std::string filename);
+bool		emptyLine(const std::string& line);
+long int	stringToLong(const std::string& str);
+void		appendToBody(char **body, size_t &body_size, char *buffer, size_t buffer_size);
+std::string	removeWhiteSpace(std::string line);
+std::string	getCurrentTime();
+std::string	stringify(long value);
+long		getFileSize(const std::string& filename);
+bool		is_directory(const char* path);
 
 #endif /* _WEBSERV_HPP_ */

@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 11:22:53 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/16 14:55:56 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -129,26 +129,39 @@ void Client::sendRegularResponse(void)
 {
 	if (!response.second_time)
 	{
-		send(sock_fd, response.header.c_str(), response.header.size(), 0);
-		response.second_time = true;
+		if (send(sock_fd, response.header.c_str(), response.header.size(), 0) < 0)
+			action = REMOVE_CLIENT;
+		else
+			response.second_time = true;
 	}
 	else
 	{
 		char buffer[BUFFER_DATA];
 		ssize_t n = read(response.body_fd, buffer, BUFFER_DATA);
-		int i = 0;
 		if (!n)
+		{
 			action = REMOVE_CLIENT;
-		else
-			i = send(sock_fd, buffer, n, 0);
-		if (i != n)
-			std::cout << "error sending -> i: " << i << " | n: " << n << std::endl;
+			return ;
+		}
+		int sent_bytes = 0; // for debugging;
+		int pos = 0;
+		while (pos < n)
+		{
+			sent_bytes = send(sock_fd, buffer + pos, n - pos, 0);
+			if (sent_bytes < 0)
+			{
+				lseek(response.body_fd, -(n - pos), SEEK_CUR);
+				return ;
+			}
+			pos += sent_bytes;
+		}
 	}
 }
 
 void Client::sendAutoIndexAndRedirection(void)
 {
-	send(sock_fd, response.header.c_str(), response.header.size(), 0);
+	if (send(sock_fd, response.header.c_str(), response.header.size(), 0) < 0)
+		action = REMOVE_CLIENT;
 	if (action == AUTOINDEX_RESPONSE)
 		send(sock_fd, response.autoindex_body.c_str(), response.autoindex_body.size(), 0);
 	action = REMOVE_CLIENT;
@@ -181,7 +194,6 @@ void Client::chunkedUpload(void)
 	}
 	if (pos == server.client_max_body_size || (chunked_body.reading_done && pos == chunked_body.size))
 	{
-		send(sock_fd, response.header.c_str(), response.header.size(), 0);
 		close(response.upload_fd);
 		action = REMOVE_CLIENT;
 	}
@@ -222,6 +234,12 @@ void Client::normalUpload(void)
 
 void Client::sendUploadResponse(void)
 {
+	if (!response.second_time)
+	{
+		send(sock_fd, response.header.c_str(), response.header.size(), 0);
+		response.second_time = true;
+		return ;
+	}
 	if (chunked_body.chunked_body)
 		chunkedUpload();
 	else

@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 06:58:43 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/16 14:50:10 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,11 +40,13 @@ int Client::setupUpload(void)
 	if (!access(path.c_str(), F_OK))
 		return (setupConflict(server.error_pages));
 	response.upload_fd = open(path.c_str(), O_WRONLY | O_CREAT, 0666);
-	action = UPLOAD_RESPONSE;
+	if (response.upload_fd < 0)
+		return (setupNotFound(server.error_pages));
 	response.header = "HTTP/1.1 201 Created\r\nServer: webserv\r\n";
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Length: 0\r\n";
 	response.header += "Connection: keep-alive\r\n\r\n";
+	action = UPLOAD_RESPONSE;
 	return (1);
 }
 
