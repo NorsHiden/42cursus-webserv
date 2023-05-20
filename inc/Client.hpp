@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:24 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/16 14:11:12 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/20 13:37:19 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,6 +32,31 @@ struct chucked_body
 	~chucked_body() { if (buffer) delete buffer; }
 };
 
+struct CGI
+{
+	std::string filepath;
+	std::string pathinfo;
+	char		**env;
+	char 		*buffer;
+	size_t		buffer_size;
+	size_t		buffer_pos;
+	pid_t		pid;
+	int			server_to_cgi[2];
+	int			cgi_to_server[2];
+	int			step;
+
+	CGI(): env(NULL), buffer(NULL), buffer_size(0), buffer_pos(8), pid(-1), step(0) {}
+	~CGI() {
+		if (env) {
+			for (int i = 0; env[i]; i++)
+				delete env[i];
+			delete env;
+		}
+		if (buffer)
+			delete buffer;
+	}
+};
+
 struct Client
 {
 	std::pair<std::string, LocationBlock>	location;
@@ -44,6 +69,7 @@ struct Client
 	sockaddr_in		addr;
 	socklen_t		addr_len;
 	Response		response;
+	CGI				cgi;
 	int				sock_fd;
 	int				action;
 	bool			header_done;
@@ -78,6 +104,9 @@ struct Client
 	int setupInternalServerError(std::map<short, std::string>& error_pages);
 	// finding right response
 	int setupRedirection(void);
+	int getPathInfo(void);
+	void setupCGIEnv(void);
+	void setupCGIstdin(void);
 	int setupCGI(void);
 	int setupUpload(void);
 	int setupRegularResponse(void);
@@ -90,6 +119,12 @@ struct Client
 	void chunkedUpload(void);
 	void normalUpload(void);
 	void sendUploadResponse(void);
+	void sendCGIResponse(void);
+	void executeCGI(void);
+	void sendBodyToCGI(void);
+	int waitForCGI(void);
+	void readFromCGI(void);
+	void CGIResponse(void);
 	
 };
 

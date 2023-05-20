@@ -6,26 +6,11 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/16 14:55:56 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/20 13:41:03 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include <webserv.hpp>
-
-void	appendToBody(char **body, size_t &body_size, char *buffer, size_t buffer_size)
-{
-	if (buffer_size == 0)
-		return ;
-	char *tmp = new char[body_size + buffer_size];
-	for (size_t i = 0; i < body_size; i++)
-		tmp[i] = (*body)[i];
-	for (size_t i = 0; i < buffer_size; i++)
-		tmp[body_size + i] = buffer[i];
-	if (body_size > 0)
-		delete[] *body;
-	*body = tmp;
-	body_size += buffer_size;
-}
 
 void Client::parseHeaderLine(std::string& line)
 {
@@ -226,7 +211,6 @@ void Client::normalUpload(void)
 	}
 	if (pos == (size_t)stringToLong(header["Content-Length"]))
 	{
-		send(sock_fd, response.header.c_str(), response.header.size(), 0);
 		close(response.upload_fd);
 		action = REMOVE_CLIENT;
 	}
@@ -246,6 +230,146 @@ void Client::sendUploadResponse(void)
 		normalUpload();
 }
 
+void Client::executeCGI(void)
+{
+	cgi.pid = fork();
+	if (!cgi.pid)
+	{
+		dup2(cgi.server_to_cgi[0], STDIN_FILENO);
+		dup2(cgi.cgi_to_server[1], STDOUT_FILENO);
+		close(cgi.cgi_to_server[1]);
+		close(cgi.cgi_to_server[0]);
+		close(cgi.server_to_cgi[0]);
+		close(cgi.server_to_cgi[1]);
+		char * const file = const_cast<char * const>(cgi.filepath.data());
+		char * const argv[2] = {file, NULL};
+		execve(location.second.cgi.first.c_str(), argv, cgi.env);
+		exit(127);
+	}
+	close(cgi.cgi_to_server[1]);
+	close(cgi.server_to_cgi[0]);
+	cgi.step++;
+}
+
+void Client::sendBodyToCGI(void)
+{
+	if (chunked_body.chunked_body)
+	{
+		if (chunked_body.reading_done)
+		{
+			close(cgi.server_to_cgi[1]);
+			cgi.step++;
+		}
+		else
+		{
+			if (chunked_body.size - chunked_body.pos_body > BUFFER_DATA)
+			{
+				write(cgi.server_to_cgi[1], chunked_body.buffer + chunked_body.pos_body, BUFFER_DATA);
+				chunked_body.pos_body += BUFFER_DATA;
+			}
+			else
+			{
+				write(cgi.server_to_cgi[1], chunked_body.buffer + chunked_body.pos_body, chunked_body.size - chunked_body.pos_body);
+				chunked_body.pos_body += chunked_body.size - chunked_body.pos_body;
+			}
+		}
+	}
+	else
+	{
+		if (body_size - pos > BUFFER_DATA)
+		{
+			write(cgi.server_to_cgi[1], body + pos, BUFFER_DATA);
+			pos += BUFFER_DATA;
+		}
+		else
+		{
+			write(cgi.server_to_cgi[1], body + pos, body_size - pos);
+			pos += body_size - pos;
+		}
+		if (pos == body_size)
+		{
+			close(cgi.server_to_cgi[1]);
+			cgi.step++;
+		}
+	}
+}
+
+int Client::waitForCGI(void)
+{
+	int status = -1;
+
+	if (waitpid(cgi.pid, &status, WNOHANG) == 0)
+		return (0);
+	if (WEXITSTATUS(status) > 0)
+		return (setupInternalServerError(server.error_pages));
+	cgi.step++;
+	return (0);
+}
+
+void Client::readFromCGI(void)
+{
+	char buffer[BUFFER_DATA + 1];
+	int ret = 0;
+	ret = read(cgi.cgi_to_server[0], buffer, BUFFER_DATA);
+	if (!ret)
+	{
+		close(cgi.cgi_to_server[0]);
+		std::string status = "Status: ";
+		if (strncmp(cgi.buffer, status.c_str(), status.size()))
+		{
+			setupInternalServerError(server.error_pages);
+			return ;
+		}
+		cgi.step++;
+		return ;
+	}
+	appendToBody(&cgi.buffer, cgi.buffer_size, buffer, ret);
+}
+
+void Client::CGIResponse(void)
+{
+	if (cgi.buffer_pos == cgi.buffer_size)
+	{
+		action = REMOVE_CLIENT;
+		return ;
+	}
+	if (!response.second_time)
+		send(sock_fd, "HTTP/1.1 ", 9, 0);
+	if (cgi.buffer_size - cgi.buffer_pos > BUFFER_DATA)
+	{
+		send(sock_fd, cgi.buffer + cgi.buffer_pos, BUFFER_DATA, 0);
+		cgi.buffer_pos += BUFFER_DATA;
+	}
+	else
+	{
+		send(sock_fd, cgi.buffer + cgi.buffer_pos, cgi.buffer_size - cgi.buffer_pos, 0);
+		cgi.buffer_pos += cgi.buffer_size - cgi.buffer_pos;
+	}
+}
+
+void Client::sendCGIResponse(void)
+{
+	switch (cgi.step)
+	{
+		case 0:
+			executeCGI(); // fork and execve
+			break ;
+		case 1:
+			sendBodyToCGI(); // send body to cgi
+			break ;
+		case 2:
+			waitForCGI(); // wait for cgi
+			break ;
+		case 3:
+			readFromCGI(); // read from cgi
+			break ;
+		case 4:
+			CGIResponse(); // parse cgi response
+			break ;
+	}
+
+}
+
 void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 {
 	if (action == READ_SOCKET || action == REMOVE_CLIENT)
@@ -258,4 +382,6 @@ void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 		sendAutoIndexAndRedirection();
 	else if (action == UPLOAD_RESPONSE)
 		sendUploadResponse();
+	else if (action == CGI_RESPONSE)
+		sendCGIResponse();
 }

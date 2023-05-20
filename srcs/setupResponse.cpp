@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/16 14:50:10 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/20 13:28:37 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,10 +23,55 @@ int Client::setupRedirection(void)
 	return (1);
 }
 
+int Client::getPathInfo(void)
+{
+	size_t path = start_line[1].find('.');
+	if (path == std::string::npos)
+		return (1);
+	path = start_line[1].find('/', path);
+	if (path == std::string::npos && location.second.cgi.second.compare(&start_line[1][path + 1]))
+	{
+		cgi.filepath = location.second.root + start_line[1].substr(location.first.size(), start_line[1].size() - location.first.size());
+		cgi.pathinfo = "/";
+
+	}	
+	else
+	{
+		cgi.filepath = location.second.root + start_line[1].substr(location.first.size(), path - location.first.size());
+		cgi.pathinfo = start_line[1].substr(path, start_line[1].size() - path);
+	}
+	return (0);
+}
+
+void Client::setupCGIEnv(void)
+{
+	cgi.env = new char*[header.size() + 4]();
+	int i = 0;
+	for (std::map<std::string, std::string>::iterator it = header.begin(); it != header.end(); it++)
+	{
+		cgi.env[i] = new char[it->first.size() + it->second.size() + 2 + 5](); // +5 for HTTP_
+		std::string env = convertToCGIHeader(it->first) + "=" + it->second;
+		std::copy(env.begin(), env.end(), cgi.env[i]);
+		i++;
+	}
+	cgi.env[i++] = strdup("SERVER_PROTOCOL=HTTP/1.1");
+	cgi.env[i++] = strdup(("REQUEST_METHOD=" + start_line[0]).c_str());
+	cgi.env[i++] = strdup(("PATH_INFO=" + cgi.pathinfo).c_str());
+}
+
 int Client::setupCGI(void)
 {
 	if (access(location.second.cgi.first.c_str(), X_OK))
 		return (setupInternalServerError(server.error_pages));
+	if (location.second.root.empty())
+		return (setupForbidden(server.error_pages));
+	if (getPathInfo())
+		return (0);
+	if (access(cgi.filepath.c_str(), R_OK))
+		return (setupNotFound(server.error_pages));
+	setupCGIEnv();
+	pipe(cgi.server_to_cgi);
+	pipe(cgi.cgi_to_server);
 	action = CGI_RESPONSE;
 	return (1);
 }
@@ -35,8 +80,9 @@ int Client::setupUpload(void)
 {
 	if (!is_directory(location.second.upload.c_str()) && access(location.second.upload.c_str(), W_OK))
 		return (setupInternalServerError(server.error_pages));
+	if (header.find("Content-Length") == header.end())
+		return (setupLengthRequired(server.error_pages));
 	std::string path = location.second.upload + (start_line[1].substr(location.first.size(), start_line[1].size() - location.first.size()));
-	std::cout << "path: " << path << std::endl;
 	if (!access(path.c_str(), F_OK))
 		return (setupConflict(server.error_pages));
 	response.upload_fd = open(path.c_str(), O_WRONLY | O_CREAT, 0666);
@@ -216,7 +262,10 @@ int Client::setupResponse(short port, std::vector<ServerBlock>& config)
 	if (!location.second.redirection.first.empty())
 		return (setupRedirection());
 	if (!location.second.cgi.first.empty())
-		return (setupCGI());
+	{
+		if (setupCGI())
+			return (1);
+	}
 	if (start_line[0] == "POST" && !location.second.upload.empty())
 		return (setupUpload());
 	setupRegularResponse();

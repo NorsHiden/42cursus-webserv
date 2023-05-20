@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:14 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/15 10:27:31 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/20 11:15:28 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,21 @@ std::string removeWhiteSpace(std::string line)
     while (end > 0 && isspace(line[end])) end--;
 
     return (line.substr(start, end - start + 1));
+}
+
+void	appendToBody(char **body, size_t &body_size, char *buffer, size_t buffer_size)
+{
+	if (buffer_size == 0)
+		return ;
+	char *tmp = new char[body_size + buffer_size];
+	for (size_t i = 0; i < body_size; i++)
+		tmp[i] = (*body)[i];
+	for (size_t i = 0; i < buffer_size; i++)
+		tmp[body_size + i] = buffer[i];
+	if (body_size > 0)
+		delete[] *body;
+	*body = tmp;
+	body_size += buffer_size;
 }
 
 std::string getFileType(std::string filename)
@@ -107,6 +122,21 @@ std::vector<std::string> split(const std::string& str, char delim)
     if (!emptyLine(str.substr(start)))
         tokens.push_back(str.substr(start));
     return tokens;
+}
+
+std::string convertToCGIHeader(std::string key)
+{
+    std::string result;
+    if (key != "Content-Type" && key != "Content-Length")
+        result += "HTTP_";
+    for (size_t i = 0; i < key.size(); i++)
+    {
+        if (key[i] == '-')
+            result += '_';
+        else
+            result += std::toupper(key[i]);
+    }
+    return (result);
 }
 
 long int stringToLong(const std::string& str)

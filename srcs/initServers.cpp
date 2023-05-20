@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/16 10:13:45 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/19 08:16:41 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -105,7 +105,7 @@ void	Server::buildServers(void)
 		serv_addr.sin_port = htons(config[i].listen.second); // port in network byte order
 		// binding the socket to the server address
 		if (bind(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-			throw (std::runtime_error("bind failed due to the port is already in use."));
+			throw (std::runtime_error("bind failed due to invalid IP address or the port is already in use."));
 		 // listening for incoming connections
 		if (listen(sock, SOMAXCONN) < 0) // LISTEN_QUEUE is how many connections should be in the queue before starting to reject requests
 			throw (std::runtime_error("listen failed due to permission denied."));

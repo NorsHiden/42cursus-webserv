@@ -66,5 +66,6 @@ std::string	getCurrentTime();
 std::string	stringify(long value);
 long		getFileSize(const std::string& filename);
 bool		is_directory(const char* path);
+std::string convertToCGIHeader(std::string key);
 
 #endif /* _WEBSERV_HPP_ */

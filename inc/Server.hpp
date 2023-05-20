@@ -19,8 +19,8 @@ class Server
 {
 	private:
 		std::vector<ServerBlock> config; // imported from config file
-		std::map<short, int> server_sockets; // server_fds
-		std::map<short, std::list<Client> > clients;
+		std::map<short, int> server_sockets; // server_fds [PORT, SOCKET]
+		std::map<short, std::list<Client> > clients; // [PORT, [CLIENTS]]
 		
 	public:
 		/* Modifiers */

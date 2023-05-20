@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:27 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/13 18:43:28 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/17 08:22:37 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -83,8 +83,10 @@ void Server::errorPagesComp(std::string line, ServerBlock& server)
 		throw (std::runtime_error("invalid error_page value."));
 	std::pair<short, std::string> page;
 	page.first = stringToLong(status_path[0]);
-	if (server.error_pages.find(page.first) != server.error_pages.end())
-			throw (std::runtime_error("duplication in error_page value."));
+	if (page.first < 300 || page.first > 599)
+		throw (std::runtime_error("error_page value should be between 300-599."));
+	else if (server.error_pages.find(page.first) != server.error_pages.end())
+		throw (std::runtime_error("duplication in error_page value."));
 	page.second = status_path[1];
 	server.error_pages.insert(page);
 }
@@ -99,6 +101,8 @@ void Server::rootComp(std::string line, LocationBlock& location)
 	std::vector<std::string> path = split(value, ' ');
 	if (path.size() != 1)
 		throw (std::runtime_error("invalid root value."));
+	if (path[0][path[0].size() - 1] != '/')
+		path[0] += '/';
 	location.root = path[0];
 }
 
