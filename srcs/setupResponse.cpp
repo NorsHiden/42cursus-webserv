@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/20 13:28:37 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/04 11:47:54 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ int Client::setupRedirection(void)
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Location: " + location.second.redirection.first + "\r\n";
 	response.header += "Content-Length: 0\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = REDIRECTION_RESPONSE;
 	return (1);
 }
@@ -91,7 +91,7 @@ int Client::setupUpload(void)
 	response.header = "HTTP/1.1 201 Created\r\nServer: webserv\r\n";
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Length: 0\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = UPLOAD_RESPONSE;
 	return (1);
 }
@@ -132,7 +132,7 @@ int Client::setupAutoIndex(std::string& path)
 	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(response.autoindex_body.size()) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = AUTOINDEX_RESPONSE;
 	return (1);
 }
@@ -177,7 +177,7 @@ int Client::setupRegularResponse(void)
 	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: " + getFileType(filename) + "\r\nContent-Length: " + stringify(getFileSize(filename)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = REGULAR_RESPONSE;
 	return (1);
 }

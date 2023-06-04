@@ -27,7 +27,6 @@ int main(int ac, char **av)
 			throw (std::runtime_error("no server has been found."));
 		server.buildServers();
 		server.launchServers();
-		std::cout << server;
 	}
 	catch (const std::exception& e)
 	{

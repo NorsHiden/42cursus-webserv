@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:32 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/14 15:15:10 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/04 11:47:33 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ int Client::setupBadRequest(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -49,7 +49,7 @@ int Client::setupConflict(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -70,7 +70,7 @@ int Client::setupLengthRequired(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -91,7 +91,7 @@ int Client::setupInternalServerError(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -112,7 +112,7 @@ int Client::setupRequestEntityTooLarge(std::map<short, std::string>& error_pages
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -133,7 +133,7 @@ int Client::setupMethodNotAllowed(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -154,7 +154,7 @@ int Client::setupHTTPVersionNotSupported(std::map<short, std::string>& error_pag
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -175,7 +175,7 @@ int Client::setupForbidden(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }
@@ -196,7 +196,7 @@ int Client::setupNotFound(std::map<short, std::string>& error_pages)
 	response.body_fd = open(path.c_str(), O_RDONLY);
 	response.header += "Date: " + getCurrentTime() + "\r\n";
 	response.header += "Content-Type: text/html\r\nContent-Length: " + stringify(getFileSize(path)) + "\r\n";
-	response.header += "Connection: keep-alive\r\n\r\n";
+	response.header += "Connection: close\r\n\r\n";
 	action = ERROR_RESPONSE;
 	return (1);
 }

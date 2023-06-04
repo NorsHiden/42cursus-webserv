@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/19 08:16:41 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/05/27 11:41:16 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -92,7 +92,7 @@ void	Server::buildServers(void)
 		if (sock < 0)
 			throw (std::runtime_error("socket failed."));
 		int reuse = 1;
-		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1) 
+		if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) == -1)
 			throw (std::runtime_error("setsockopt failed"));
 
 		if (fcntl(sock, F_SETFL, O_NONBLOCK) < 0)

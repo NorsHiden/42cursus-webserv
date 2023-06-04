@@ -37,7 +37,7 @@
 # include <sstream>
 # include <algorithm>
 
-# define BUFFER_DATA 10240
+# define BUFFER_DATA 102400
 
 # include "LocationBlock.hpp"
 # include "ServerBlock.hpp"

@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/20 13:41:03 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/04 14:03:42 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -76,7 +76,6 @@ void Client::readRequest(void)
 	char buffer[BUFFER_DATA + 1];
 	memset(buffer, 0, sizeof(buffer));
 	int ret = recv(sock_fd, buffer, BUFFER_DATA, 0);
-
 	if (ret <= 0)
 	{	
 		std::cout << "connection closed" << std::endl;
@@ -128,7 +127,7 @@ void Client::sendRegularResponse(void)
 			action = REMOVE_CLIENT;
 			return ;
 		}
-		int sent_bytes = 0; // for debugging;
+		int sent_bytes = 0;
 		int pos = 0;
 		while (pos < n)
 		{
@@ -241,8 +240,10 @@ void Client::executeCGI(void)
 		close(cgi.cgi_to_server[0]);
 		close(cgi.server_to_cgi[0]);
 		close(cgi.server_to_cgi[1]);
-		char * const file = const_cast<char * const>(cgi.filepath.data());
-		char * const argv[2] = {file, NULL};
+		char * const argv[3] = {
+			const_cast<char * const>(location.second.cgi.first.c_str()),
+			const_cast<char * const>(cgi.filepath.data()), NULL
+		};
 		execve(location.second.cgi.first.c_str(), argv, cgi.env);
 		exit(127);
 	}
@@ -315,7 +316,7 @@ void Client::readFromCGI(void)
 	{
 		close(cgi.cgi_to_server[0]);
 		std::string status = "Status: ";
-		if (strncmp(cgi.buffer, status.c_str(), status.size()))
+		if (!cgi.buffer || strncmp(cgi.buffer, status.c_str(), status.size()))
 		{
 			setupInternalServerError(server.error_pages);
 			return ;
