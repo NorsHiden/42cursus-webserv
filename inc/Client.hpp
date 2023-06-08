@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:24 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/20 13:37:19 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 15:29:27 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,19 +17,14 @@
 
 struct chucked_body
 {
+	std::vector<char>	body_buffer;
 	size_t	size;
-	char	*buffer;
 	bool	looking_for_size;
 	size_t	grabbed_size;
 	bool	chunked_body;
-	bool	reading_body;
-	size_t	pos_body;
-	size_t	start_body;
 	bool	reading_done;
 
-	chucked_body(): size(0), buffer(NULL), looking_for_size(true), grabbed_size(0), chunked_body(false),
-		reading_body(false), pos_body(0), start_body(0), reading_done(false) {}
-	~chucked_body() { if (buffer) delete buffer; }
+	chucked_body(): size(0), looking_for_size(true), grabbed_size(0), chunked_body(false), reading_done(false) {}
 };
 
 struct CGI
@@ -38,6 +33,7 @@ struct CGI
 	std::string pathinfo;
 	char		**env;
 	char 		*buffer;
+	std::vector<char>	body_buffer;
 	size_t		buffer_size;
 	size_t		buffer_pos;
 	pid_t		pid;
@@ -70,15 +66,14 @@ struct Client
 	socklen_t		addr_len;
 	Response		response;
 	CGI				cgi;
+	std::vector<char>	body_buffer;
 	int				sock_fd;
 	int				action;
 	bool			header_done;
-	size_t			pos;
-	char			*body;
-	size_t			body_size;
+	ssize_t			read_size;
 
-	Client(): sock_fd(-1), action(false), header_done(false), pos(0), body(NULL), body_size(0) {}
-	~Client() { if (body) delete body; }
+	Client(): sock_fd(-1), action(false), header_done(false), read_size(0) {}
+	~Client() {}
 
 	void handleRequest(short port, std::vector<ServerBlock>& config);
 	int setupResponse(short port, std::vector<ServerBlock>& config);

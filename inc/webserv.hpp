@@ -22,6 +22,7 @@
 # include <dirent.h>
 # include <string.h>
 # include <sys/socket.h>
+# include <signal.h>
 # include <fcntl.h>
 # include <ctime>
 # include <sys/stat.h>
@@ -59,7 +60,7 @@
 std::vector<std::string>	split(const std::string& str, char delim);
 std::string	getFileType(std::string filename);
 bool		emptyLine(const std::string& line);
-long int	stringToLong(const std::string& str);
+ssize_t	    stringToLong(const std::string& str);
 void		appendToBody(char **body, size_t &body_size, char *buffer, size_t buffer_size);
 std::string	removeWhiteSpace(std::string line);
 std::string	getCurrentTime();
@@ -67,5 +68,5 @@ std::string	stringify(long value);
 long		getFileSize(const std::string& filename);
 bool		is_directory(const char* path);
 std::string convertToCGIHeader(std::string key);
-
+void        printReady(ServerBlock& config);
 #endif /* _WEBSERV_HPP_ */

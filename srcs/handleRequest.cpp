@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/04 14:03:42 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 15:52:51 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,30 +30,36 @@ void Client::parseHeaderLine(std::string& line)
 void Client::adjustBody(void)
 {
 	// chunked body
-	for (; chunked_body.pos_body < body_size - 1; chunked_body.pos_body++)
+	size_t pos = 0;
+	while (body_buffer.size() > 0 && body_buffer.size() > pos)
 	{
-		if (body[chunked_body.pos_body] == '\r' && body[chunked_body.pos_body + 1] == '\n')
+		if (body_buffer[pos] == '\r' && body_buffer[pos + 1] == '\n')
 		{
 			if (chunked_body.looking_for_size)
 			{
-				body[chunked_body.pos_body] = 0;
-				chunked_body.grabbed_size = strtol(body + chunked_body.start_body, NULL, 16);
-				if (chunked_body.grabbed_size == 0)
+				chunked_body.size = strtol(&body_buffer[0], NULL, 16);
+				if (chunked_body.size == 0)
 				{
 					chunked_body.reading_done = true;
 					break ;
 				}
-				chunked_body.start_body = chunked_body.pos_body + 2;
 				chunked_body.looking_for_size = false;
+				chunked_body.grabbed_size = 0;
+				body_buffer.erase(body_buffer.begin(), body_buffer.begin() + pos + 2);
+				pos = 0;
 			}
-			else if (chunked_body.pos_body - chunked_body.start_body >= chunked_body.grabbed_size)
+			else
 			{
 				chunked_body.looking_for_size = true;
-				appendToBody(&chunked_body.buffer, chunked_body.size, body + chunked_body.start_body, chunked_body.grabbed_size);
-				chunked_body.start_body = chunked_body.pos_body + 2;
-				chunked_body.grabbed_size = 0;
+				chunked_body.body_buffer.insert(chunked_body.body_buffer.end(), body_buffer.begin(), body_buffer.begin() + pos);
+				body_buffer.erase(body_buffer.begin(), body_buffer.begin() + pos + 2);
+				chunked_body.grabbed_size += pos;
+				if (chunked_body.grabbed_size == chunked_body.body_buffer.size())
+					break ;
+				pos = 0;
 			}
 		}
+		pos++;
 	}
 }
 
@@ -93,8 +99,8 @@ void Client::readRequest(void)
 			parseRequestHeader();
 			if (!request_buffer.empty())
 			{
-				appendToBody(&body, body_size, buffer + pos + 4, ret - pos - 4);
-				if (chunked_body.chunked_body && !chunked_body.reading_done)
+				body_buffer.insert(body_buffer.end(), buffer + pos + 4, buffer + ret);
+				if (chunked_body.chunked_body)
 					adjustBody();
 			}
 			action = SETUP_RESPONSE;
@@ -102,8 +108,8 @@ void Client::readRequest(void)
 	}
 	else
 	{
-		appendToBody(&body, body_size, buffer, ret);
-		if (chunked_body.chunked_body && !chunked_body.reading_done)
+		body_buffer.insert(body_buffer.end(), buffer, buffer + ret);
+		if (chunked_body.chunked_body)
 			adjustBody();
 	}
 }
@@ -127,18 +133,10 @@ void Client::sendRegularResponse(void)
 			action = REMOVE_CLIENT;
 			return ;
 		}
-		int sent_bytes = 0;
-		int pos = 0;
-		while (pos < n)
-		{
-			sent_bytes = send(sock_fd, buffer + pos, n - pos, 0);
-			if (sent_bytes < 0)
-			{
-				lseek(response.body_fd, -(n - pos), SEEK_CUR);
-				return ;
-			}
-			pos += sent_bytes;
-		}
+		int sent_bytes = send(sock_fd, buffer, BUFFER_DATA, 0);
+		if (sent_bytes < BUFFER_DATA)
+			lseek(response.body_fd, -(BUFFER_DATA - sent_bytes), SEEK_CUR);
+		return ;
 	}
 }
 
@@ -153,77 +151,70 @@ void Client::sendAutoIndexAndRedirection(void)
 
 void Client::chunkedUpload(void)
 {
-	if (pos + BUFFER_DATA > server.client_max_body_size)
+	size_t write_size = 0;
+	if ((ssize_t)chunked_body.body_buffer.size() > BUFFER_DATA)
 	{
-		if (chunked_body.size - pos > BUFFER_DATA)
+		if (read_size + BUFFER_DATA > server.client_max_body_size)
 		{
-			write(response.upload_fd, chunked_body.buffer + pos, BUFFER_DATA);
-			pos += BUFFER_DATA;
+			write_size = server.client_max_body_size - read_size;
+			response.second_time = true;
 		}
 		else
-		{
-			write(response.upload_fd, chunked_body.buffer + pos, chunked_body.size - pos);
-			pos += chunked_body.size - pos;
-		}
-	}
-	else if (chunked_body.size - pos > server.client_max_body_size)
-	{
-		write(response.upload_fd, chunked_body.buffer + pos, server.client_max_body_size - pos);
-		pos += server.client_max_body_size - pos;
+			write_size = BUFFER_DATA;
+		write(response.upload_fd, &chunked_body.body_buffer[0], write_size);
+		chunked_body.body_buffer.erase(chunked_body.body_buffer.begin(), chunked_body.body_buffer.begin() + write_size);
 	}
 	else
 	{
-		write(response.upload_fd, chunked_body.buffer + pos, chunked_body.size - pos);
-		pos += chunked_body.size - pos;
+		if (read_size + (ssize_t)chunked_body.body_buffer.size() > server.client_max_body_size)
+			write_size = server.client_max_body_size - read_size;
+		else
+			write_size = (ssize_t)chunked_body.body_buffer.size();
+		write(response.upload_fd, &chunked_body.body_buffer[0], write_size);
+		chunked_body.body_buffer.clear();
+		response.second_time = true;
 	}
-	if (pos == server.client_max_body_size || (chunked_body.reading_done && pos == chunked_body.size))
-	{
-		close(response.upload_fd);
-		action = REMOVE_CLIENT;
-	}
+	read_size += write_size;
 }
 
 void Client::normalUpload(void)
 {
-	if (pos + BUFFER_DATA > (size_t)stringToLong(header["Content-Length"]))
+	size_t write_size = 0;
+	if ((ssize_t)body_buffer.size() > BUFFER_DATA)
 	{
-		if (body_size - pos > BUFFER_DATA)
+		if (read_size + BUFFER_DATA > stringToLong(header["Content-Length"]))
 		{
-			write(response.upload_fd, body + pos, BUFFER_DATA);
-			pos += BUFFER_DATA;
+			write_size = stringToLong(header["Content-Length"]) - read_size;
+			response.second_time = true;
 		}
 		else
-		{
-			write(response.upload_fd, body + pos, body_size - pos);
-			pos += body_size - pos;
-		}
-	}
-	else if (body_size - pos > (size_t)stringToLong(header["Content-Length"]))
-	{
-		write(response.upload_fd, body + pos, stringToLong(header["Content-Length"]) - pos);
-		pos += stringToLong(header["Content-Length"]) - pos;
+			write_size = BUFFER_DATA;
+		write(response.upload_fd, &body_buffer[0], write_size);
+		body_buffer.erase(body_buffer.begin(), body_buffer.begin() + write_size);
 	}
 	else
 	{
-		write(response.upload_fd, body + pos, body_size - pos);
-		pos += body_size - pos;
+		if (read_size + (ssize_t)body_buffer.size() > stringToLong(header["Content-Length"]))
+		{
+			write_size = stringToLong(header["Content-Length"]) - read_size;
+		}
+		else
+			write_size = (ssize_t)body_buffer.size();
+		write(response.upload_fd, &body_buffer[0], write_size);
+		response.second_time = true;
+		body_buffer.clear();
 	}
-	if (pos == (size_t)stringToLong(header["Content-Length"]))
-	{
-		close(response.upload_fd);
-		action = REMOVE_CLIENT;
-	}
+	read_size += write_size;
 }
 
 void Client::sendUploadResponse(void)
 {
-	if (!response.second_time)
+	if (response.second_time)
 	{
 		send(sock_fd, response.header.c_str(), response.header.size(), 0);
-		response.second_time = true;
-		return ;
+		action = REMOVE_CLIENT;
 	}
-	if (chunked_body.chunked_body)
+	else if (chunked_body.chunked_body)
 		chunkedUpload();
 	else
 		normalUpload();
@@ -254,44 +245,60 @@ void Client::executeCGI(void)
 
 void Client::sendBodyToCGI(void)
 {
+	size_t write_size = 0;
+	if (body_buffer.empty() && chunked_body.body_buffer.empty())
+	{
+		close(cgi.server_to_cgi[1]);
+		cgi.step++;
+		return ;
+	}
 	if (chunked_body.chunked_body)
 	{
-		if (chunked_body.reading_done)
+		if ((ssize_t)chunked_body.body_buffer.size() > BUFFER_DATA)
 		{
-			close(cgi.server_to_cgi[1]);
-			cgi.step++;
+			if (read_size + BUFFER_DATA > server.client_max_body_size)
+				write_size = server.client_max_body_size - read_size;
+			else
+				write_size = BUFFER_DATA;
+			write(cgi.server_to_cgi[1], &chunked_body.body_buffer[0], write_size);
+			chunked_body.body_buffer.erase(chunked_body.body_buffer.begin(), chunked_body.body_buffer.begin() + write_size);
 		}
 		else
 		{
-			if (chunked_body.size - chunked_body.pos_body > BUFFER_DATA)
-			{
-				write(cgi.server_to_cgi[1], chunked_body.buffer + chunked_body.pos_body, BUFFER_DATA);
-				chunked_body.pos_body += BUFFER_DATA;
-			}
+			if (read_size + (ssize_t)chunked_body.body_buffer.size() > server.client_max_body_size)
+				write_size = server.client_max_body_size - read_size;
 			else
-			{
-				write(cgi.server_to_cgi[1], chunked_body.buffer + chunked_body.pos_body, chunked_body.size - chunked_body.pos_body);
-				chunked_body.pos_body += chunked_body.size - chunked_body.pos_body;
-			}
+				write_size = chunked_body.body_buffer.size();
+			write(cgi.server_to_cgi[1], &chunked_body.body_buffer[0], write_size);
+			chunked_body.body_buffer.clear();
 		}
 	}
 	else
 	{
-		if (body_size - pos > BUFFER_DATA)
+		if (body_buffer.size() > BUFFER_DATA)
 		{
-			write(cgi.server_to_cgi[1], body + pos, BUFFER_DATA);
-			pos += BUFFER_DATA;
+			if (read_size + BUFFER_DATA > stringToLong(header["Content-Length"]))
+				write_size = stringToLong(header["Content-Length"]) - read_size;
+			else
+				write_size = BUFFER_DATA;
+			write(cgi.server_to_cgi[1], &body_buffer[0], write_size);
+			body_buffer.erase(body_buffer.begin(), body_buffer.begin() + write_size);
 		}
 		else
 		{
-			write(cgi.server_to_cgi[1], body + pos, body_size - pos);
-			pos += body_size - pos;
+			if (read_size + (ssize_t)body_buffer.size() > stringToLong(header["Content-Length"]))
+				write_size = stringToLong(header["Content-Length"]) - read_size;
+			else
+				write_size = body_buffer.size();
+			write(cgi.server_to_cgi[1], &body_buffer[0], write_size);
+			body_buffer.clear();
 		}
-		if (pos == body_size)
-		{
-			close(cgi.server_to_cgi[1]);
-			cgi.step++;
-		}
+	}
+	read_size += write_size;
+	if (read_size == server.client_max_body_size || read_size == stringToLong(header["Content-Length"]))
+	{
+		close(cgi.server_to_cgi[1]);
+		cgi.step++;
 	}
 }
 
@@ -301,6 +308,7 @@ int Client::waitForCGI(void)
 
 	if (waitpid(cgi.pid, &status, WNOHANG) == 0)
 		return (0);
+	cgi.pid = 0;
 	if (WEXITSTATUS(status) > 0)
 		return (setupInternalServerError(server.error_pages));
 	cgi.step++;

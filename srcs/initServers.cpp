@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:50 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/27 11:41:16 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 14:45:13 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 void	Server::checkNewConnections(fd_set& currentfds, fd_set& readfds)
 {
-	for (std::map<short, int>::iterator it = server_sockets.begin(); it != server_sockets.end(); ++it)
+	for (std::vector<std::pair<short, int> >::iterator it = server_sockets.begin(); it != server_sockets.end(); ++it)
 	{
 		if (FD_ISSET(it->second, &readfds))
 		{
@@ -47,6 +47,8 @@ void	Server::checkExistingConnections(fd_set& currentfds, fd_set& readfds, fd_se
 			{
 				FD_CLR(client->sock_fd, &currentfds);
 				close(client->sock_fd);
+				if (client->cgi.pid > 0)
+					kill(client->cgi.pid, SIGINT);
 				it->second.erase(client++);
 			}
 			else
@@ -64,7 +66,7 @@ void	Server::launchServers(void)
 	FD_ZERO(&currentfds);
 	memset(&time, 0, sizeof(time));
 	for (size_t i = 0; i < server_sockets.size(); ++i)
-		FD_SET(server_sockets[i], &currentfds);
+		FD_SET(server_sockets[i].second, &currentfds);
 	FD_CLR(0, &currentfds); // remove stdin from the fd_set;
 	while (true)
 	{
@@ -82,11 +84,12 @@ void	Server::launchServers(void)
 
 void	Server::buildServers(void)
 {
-	std::vector<short> hosted_ports;
+	std::vector<std::pair<int, short> > hosted_ports;
 	signal(SIGPIPE, SIG_IGN);
+	std::cout << "\033[1;32m[*] Launching servers...\033[0m" << std::endl;
 	for (size_t i = 0; i < config.size(); i++)
 	{
-		if (std::find(hosted_ports.begin(), hosted_ports.end(), config[i].listen.second) != hosted_ports.end())
+		if (std::find(hosted_ports.begin(), hosted_ports.end(), config[i].listen) != hosted_ports.end())
 			continue ;
 		int sock = socket(AF_INET, SOCK_STREAM, 0); // creating a scoket
 		if (sock < 0)
@@ -109,8 +112,9 @@ void	Server::buildServers(void)
 		 // listening for incoming connections
 		if (listen(sock, SOMAXCONN) < 0) // LISTEN_QUEUE is how many connections should be in the queue before starting to reject requests
 			throw (std::runtime_error("listen failed due to permission denied."));
-		hosted_ports.push_back(config[i].listen.second);
+		hosted_ports.push_back(config[i].listen);
 		std::pair<short, int> port_socket(config[i].listen.second, sock);
-		server_sockets.insert(port_socket);
+		server_sockets.push_back(port_socket);
+		printReady(config[i]);
 	}
 }

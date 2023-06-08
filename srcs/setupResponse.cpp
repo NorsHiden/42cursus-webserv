@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/04 11:47:54 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 15:21:09 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,7 +172,6 @@ int Client::setupRegularResponse(void)
 		filename = path;
 	else
 		return ((setupNotFound(server.error_pages)));
-	// std::cout << "filename: " << filename << std::endl;
 	response.body_fd = open(filename.c_str(), O_RDONLY);
 	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
 	response.header += "Date: " + getCurrentTime() + "\r\n";
@@ -225,7 +224,7 @@ int Client::setupLocation(void)
 
 int Client::checkMaxBodySize(void)
 {
-	size_t content_size = 0;
+	ssize_t content_size = 0;
 	if (start_line[0] != "POST")
 		return (0);
 	if (header.find("Content-Length") == header.end() && header.find("Transfer-Encoding") == header.end())

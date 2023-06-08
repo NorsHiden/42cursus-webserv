@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:14 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/20 11:15:28 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 14:33:49 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -139,7 +139,7 @@ std::string convertToCGIHeader(std::string key)
     return (result);
 }
 
-long int stringToLong(const std::string& str)
+ssize_t stringToLong(const std::string& str)
 {
     std::istringstream iss(str);
     long int result;
@@ -148,4 +148,10 @@ long int stringToLong(const std::string& str)
         throw (std::invalid_argument("stringTolong: invalid argument"));
     }
     return result;
+}
+
+void printReady(ServerBlock& config)
+{
+    char *host = reinterpret_cast<char*>(&config.listen.first);
+    std::cout << "--> Server \033[1;34mhttp://" << (int)host[3] << '.' << (int)host[2] << '.' << (int)host[1] << '.' << (int)host[0] << ":" << config.listen.second << "/\033[0m is ready" << std::endl;
 }
