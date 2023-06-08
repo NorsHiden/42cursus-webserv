@@ -1,0 +1,6 @@
+print("Status: 200 OK\r")
+print("Content-Type: text/html\r")
+print("\r")
+print("<html><head><title>CGI</title></head><body>")
+print("<h1>CGI</h1>")
+print("<p>CGI is a standard for interfacing external applications with information servers, such as HTTP or web servers.</p>")
