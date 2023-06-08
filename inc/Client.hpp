@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:24 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/08 15:29:27 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 17:55:19 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -32,24 +32,22 @@ struct CGI
 	std::string filepath;
 	std::string pathinfo;
 	char		**env;
-	char 		*buffer;
+	// char 		*buffer;
 	std::vector<char>	body_buffer;
-	size_t		buffer_size;
-	size_t		buffer_pos;
+	// size_t		buffer_size;
+	// size_t		buffer_pos;
 	pid_t		pid;
 	int			server_to_cgi[2];
 	int			cgi_to_server[2];
 	int			step;
 
-	CGI(): env(NULL), buffer(NULL), buffer_size(0), buffer_pos(8), pid(-1), step(0) {}
+	CGI(): env(NULL), pid(-1), step(0) {}
 	~CGI() {
 		if (env) {
 			for (int i = 0; env[i]; i++)
 				delete env[i];
 			delete env;
 		}
-		if (buffer)
-			delete buffer;
 	}
 };
 

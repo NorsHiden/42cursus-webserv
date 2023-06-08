@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/08 15:52:51 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/08 18:02:43 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -324,7 +324,7 @@ void Client::readFromCGI(void)
 	{
 		close(cgi.cgi_to_server[0]);
 		std::string status = "Status: ";
-		if (!cgi.buffer || strncmp(cgi.buffer, status.c_str(), status.size()))
+		if (cgi.body_buffer.empty() || strncmp(cgi.body_buffer.data(), status.c_str(), status.size()))
 		{
 			setupInternalServerError(server.error_pages);
 			return ;
@@ -332,27 +332,32 @@ void Client::readFromCGI(void)
 		cgi.step++;
 		return ;
 	}
-	appendToBody(&cgi.buffer, cgi.buffer_size, buffer, ret);
+	cgi.body_buffer.insert(cgi.body_buffer.end(), buffer, buffer + ret);
 }
 
 void Client::CGIResponse(void)
 {
-	if (cgi.buffer_pos == cgi.buffer_size)
+	if (cgi.body_buffer.empty())
 	{
 		action = REMOVE_CLIENT;
 		return ;
 	}
 	if (!response.second_time)
-		send(sock_fd, "HTTP/1.1 ", 9, 0);
-	if (cgi.buffer_size - cgi.buffer_pos > BUFFER_DATA)
 	{
-		send(sock_fd, cgi.buffer + cgi.buffer_pos, BUFFER_DATA, 0);
-		cgi.buffer_pos += BUFFER_DATA;
+		cgi.body_buffer.erase(cgi.body_buffer.begin(), cgi.body_buffer.begin() + 9);
+		std::string http = "HTTP/1.1 ";
+		cgi.body_buffer.insert(cgi.body_buffer.begin(), http.begin(), http.end());
+		response.second_time = true;
+	}
+	if (cgi.body_buffer.size() > BUFFER_DATA)
+	{
+		send(sock_fd, cgi.body_buffer.data(), BUFFER_DATA, 0);
+		cgi.body_buffer.erase(cgi.body_buffer.begin(), cgi.body_buffer.begin() + BUFFER_DATA);
 	}
 	else
 	{
-		send(sock_fd, cgi.buffer + cgi.buffer_pos, cgi.buffer_size - cgi.buffer_pos, 0);
-		cgi.buffer_pos += cgi.buffer_size - cgi.buffer_pos;
+		send(sock_fd, cgi.body_buffer.data(), cgi.body_buffer.size(), 0);
+		cgi.body_buffer.clear();
 	}
 }
 
