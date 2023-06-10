@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/10 13:41:10 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 21:35:20 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -142,10 +142,15 @@ void Client::sendRegularResponse(void)
 
 void Client::sendAutoIndexAndRedirection(void)
 {
-	if (send(sock_fd, response.header.c_str(), response.header.size(), 0) < 0)
-		action = REMOVE_CLIENT;
-	if (action == AUTOINDEX_RESPONSE)
-		send(sock_fd, response.autoindex_body.c_str(), response.autoindex_body.size(), 0);
+	if (action == REDIRECTION_RESPONSE)
+		send(sock_fd, response.header.c_str(), response.header.size(), 0);
+	else
+	{
+		std::vector<char> send_buffer;
+		send_buffer.insert(send_buffer.end(), response.header.begin(), response.header.end());
+		send_buffer.insert(send_buffer.end(), response.autoindex_body.begin(), response.autoindex_body.end());
+		send(sock_fd, send_buffer.data(), send_buffer.size(), 0);
+	}
 	action = REMOVE_CLIENT;
 }
 
@@ -386,6 +391,13 @@ void Client::sendCGIResponse(void)
 
 }
 
+void Client::sendDeleteResponse(void)
+{
+	unlink(response.filename.c_str());
+	send(sock_fd, response.header.c_str(), response.header.size(), 0);
+	action = REMOVE_CLIENT;
+}
+
 void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 {
 	if (action == READ_SOCKET || action == REMOVE_CLIENT)
@@ -400,4 +412,6 @@ void Client::handleRequest(short port, std::vector<ServerBlock>& config)
 		sendUploadResponse();
 	else if (action == CGI_RESPONSE)
 		sendCGIResponse();
+	else if (action == DELETE_RESPONSE)
+		sendDeleteResponse();
 }

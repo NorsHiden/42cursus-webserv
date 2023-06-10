@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:54 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/08 14:27:44 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 21:35:09 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,6 @@ int main(int ac, char **av)
 	}
 	try
 	{
-		// importing config file in green to make it more visible
 		std::cout << "\033[1;32m[*] Importing config file...\033[0m" << std::endl;
 		server.importConfig(av[1]);
 		if (server.empty())

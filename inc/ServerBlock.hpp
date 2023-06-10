@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:37 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/08 14:00:54 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 18:42:09 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,7 +23,7 @@ struct ServerBlock
 	std::map<short, std::string> error_pages; // [ PATH, STATUS_CODE ]
 	std::map<std::string, LocationBlock> locations; // [ URI, LOCATION_BLOCK ]
 
-	ServerBlock(): client_max_body_size(0) {}
+	ServerBlock(): client_max_body_size(-1) {}
 };
 
 #endif /* __SERVERBLOCK_HPP__ */

@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:06 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/10 11:13:40 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 22:18:12 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -172,6 +172,8 @@ int Client::setupRegularResponse(void)
 		filename = path;
 	else
 		return ((setupNotFound(server.error_pages)));
+	if (start_line[0] == "DELETE")
+		return (setupDelete(filename));
 	response.body_fd = open(filename.c_str(), O_RDONLY);
 	response.header = "HTTP/1.1 200 OK\r\nServer: webserv\r\n";
 	response.header += "Date: " + getCurrentTime() + "\r\n";
@@ -192,7 +194,7 @@ ServerBlock& Client::findHost(short port, std::vector<ServerBlock>& config)
 			std::vector<std::string> hostname = split(header["Host"], ':');
 			for (size_t j = 0; j < config[i].server_names.size(); j++)
 			{
-				if (hostname[0] == config[i].server_names[j])
+				if (hostname.empty() || hostname[0] == config[i].server_names[j])
 					return (config[i]);
 			}
 			if (!matchedServer)
@@ -242,6 +244,17 @@ int Client::checkMaxBodySize(void)
 	return (0);
 }
 
+int Client::setupDelete(std::string filename)
+{
+	if (access(filename.c_str(), W_OK))
+		return (setupForbidden(server.error_pages));
+	response.filename = filename;
+	response.header = "HTTP/1.1 204 No Content\r\nServer: webserv\r\n";
+	response.header += "Date: " + getCurrentTime() + "\r\n";
+	response.header += "Connection: close\r\n\r\n";
+	action = DELETE_RESPONSE;
+	return (1);
+}
 
 int Client::setupResponse(short port, std::vector<ServerBlock>& config)
 {
@@ -251,7 +264,7 @@ int Client::setupResponse(short port, std::vector<ServerBlock>& config)
 	if (start_line[2] != "HTTP/1.1\r")
 		return (setupHTTPVersionNotSupported(config[0].error_pages));
 	server = findHost(port, config);
-	if (checkMaxBodySize())
+	if (server.client_max_body_size >= 0 && checkMaxBodySize())
 		return (1);
 	if (setupLocation())
 		return (setupNotFound(server.error_pages));

@@ -56,6 +56,7 @@
 # define REDIRECTION_RESPONSE 6
 # define ERROR_RESPONSE 7
 # define REMOVE_CLIENT 8
+# define DELETE_RESPONSE 9
 
 std::vector<std::string>	split(const std::string& str, char delim);
 std::string	getFileType(std::string filename);

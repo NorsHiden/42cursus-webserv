@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:32 by nelidris          #+#    #+#             */
-/*   Updated: 2023/05/16 14:48:34 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 21:16:02 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,7 @@ struct Response
 	std::string autoindex_body;
 	int upload_fd;
 	bool second_time;
+	std::string filename;
 
 	Response(): body_fd(-1), upload_fd(-1), second_time(false) {}
 	~Response()

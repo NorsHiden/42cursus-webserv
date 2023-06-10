@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:44:24 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/08 17:55:19 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 21:21:26 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -106,6 +106,7 @@ struct Client
 	std::string getDirectoryContent(const std::string& path);
 	int aDirectoryRequest(std::string& path, std::string& filename);
 	int	setupAutoIndex(std::string& path);
+	int setupDelete(std::string filename);
 	// sending response
 	void sendRegularResponse(void);
 	void sendAutoIndexAndRedirection(void);
@@ -118,6 +119,7 @@ struct Client
 	int waitForCGI(void);
 	void readFromCGI(void);
 	void CGIResponse(void);
+	void sendDeleteResponse(void);
 	
 };
 
