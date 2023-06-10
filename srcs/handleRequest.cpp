@@ -6,7 +6,7 @@
 /*   By: nelidris <nelidris@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/13 18:43:40 by nelidris          #+#    #+#             */
-/*   Updated: 2023/06/08 18:02:43 by nelidris         ###   ########.fr       */
+/*   Updated: 2023/06/10 11:20:19 by nelidris         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -171,8 +171,9 @@ void Client::chunkedUpload(void)
 		else
 			write_size = (ssize_t)chunked_body.body_buffer.size();
 		write(response.upload_fd, &chunked_body.body_buffer[0], write_size);
+		if (read_size + (ssize_t)write_size == stringToLong(header["Content-Length"]))
+			response.second_time = true;
 		chunked_body.body_buffer.clear();
-		response.second_time = true;
 	}
 	read_size += write_size;
 }
@@ -201,7 +202,8 @@ void Client::normalUpload(void)
 		else
 			write_size = (ssize_t)body_buffer.size();
 		write(response.upload_fd, &body_buffer[0], write_size);
-		response.second_time = true;
+		if (read_size + (ssize_t)write_size == stringToLong(header["Content-Length"]))
+			response.second_time = true;
 		body_buffer.clear();
 	}
 	read_size += write_size;
